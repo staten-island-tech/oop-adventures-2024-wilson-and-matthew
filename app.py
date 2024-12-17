@@ -1,175 +1,217 @@
 import pygame
 import random
+import math
 
 # Initialize pygame
 pygame.init()
 
-# Game constants
+# Screen dimensions
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-TILE_SIZE = 40
-DUNGEON_WIDTH = SCREEN_WIDTH // TILE_SIZE
-DUNGEON_HEIGHT = SCREEN_HEIGHT // TILE_SIZE
-FPS = 120
+FPS = 60
 
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
+GREEN = (0, 255, 0)  # Player color (green)
+RED = (255, 0, 0)    # Monster color (red)
+YELLOW = (255, 255, 0)  # Exit color (yellow)
 
-# Create the screen object
+# Tile size
+TILE_SIZE = 40
+
+# Player movement speed
+PLAYER_SPEED = 5
+
+# Proximity range to trigger fight message
+PROXIMITY_RANGE = 80  # The player must be within 80 pixels of the monster
+
+# Create the screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Dungeon Game")
+pygame.display.set_caption("Dungeon Crawler")
 
-# Set up the clock
+# Clock to control game frame rate
 clock = pygame.time.Clock()
 
-# Player class
-class Player(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(GREEN)
-        self.rect = self.image.get_rect()
-        self.rect.x = DUNGEON_WIDTH // 2 * TILE_SIZE
-        self.rect.y = DUNGEON_HEIGHT // 2 * TILE_SIZE
-        self.speed = TILE_SIZE
-        self.can_move = True  # Flag to ensure only one move per key press
+# Define the classes
+class Dungeon:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.grid = self.generate_maze()
 
-    def update(self, keys, dungeon):
-        if self.can_move:
-            new_x = self.rect.x
-            new_y = self.rect.y
+    def generate_maze(self):
+        # Initialize the grid with walls (1's)
+        grid = [[1 for _ in range(self.width)] for _ in range(self.height)]
 
-            # Check for movement based on key presses
-            if keys[pygame.K_LEFT]:
-                new_x -= self.speed
-            if keys[pygame.K_RIGHT]:
-                new_x += self.speed
-            if keys[pygame.K_UP]:
-                new_y -= self.speed
-            if keys[pygame.K_DOWN]:
-                new_y += self.speed
+        # Randomized depth-first search (DFS) algorithm for maze generation
+        def dfs(x, y):
+            directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Right, Down, Left, Up
+            random.shuffle(directions)
+            for dx, dy in directions:
+                nx, ny = x + dx * 2, y + dy * 2
+                if 0 < nx < self.width and 0 < ny < self.height and grid[ny][nx] == 1:
+                    grid[ny][nx] = 0  # Carve path
+                    grid[y + dy][x + dx] = 0  # Carve the wall between
+                    dfs(nx, ny)
 
-            # Ensure the player moves only to white tiles (valid empty spaces)
-            if 0 <= new_x // TILE_SIZE < DUNGEON_WIDTH and 0 <= new_y // TILE_SIZE < DUNGEON_HEIGHT:
-                if dungeon[new_y // TILE_SIZE][new_x // TILE_SIZE] == 0:  # Check if it's a white space (empty)
-                    self.rect.x = new_x
-                    self.rect.y = new_y
-                    self.can_move = False  # Prevent movement until the next update
+        # Start DFS from a random point (e.g., 1,1)
+        start_x, start_y = 1, 1
+        grid[start_y][start_x] = 0  # Make the start point a path
+        dfs(start_x, start_y)
 
-        # Keep player within dungeon bounds
-        self.rect.x = max(0, min(self.rect.x, SCREEN_WIDTH - TILE_SIZE))
-        self.rect.y = max(0, min(self.rect.y, SCREEN_HEIGHT - TILE_SIZE))
+        return grid
 
-    def reset_move(self):
-        # Allow player to move again after 1 update cycle
-        self.can_move = True
+    def draw(self):
+        # Draw the dungeon
+        for y in range(self.height):
+            for x in range(self.width):
+                color = WHITE if self.grid[y][x] == 0 else BLACK
+                pygame.draw.rect(screen, color, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
-# Dungeon generation function (simple random maze)
-def generate_dungeon():
-    dungeon = [[random.choice([0, 1]) for _ in range(DUNGEON_WIDTH)] for _ in range(DUNGEON_HEIGHT)]
-    # Ensure the starting area is empty
-    dungeon[DUNGEON_HEIGHT // 2][DUNGEON_WIDTH // 2] = 0
-    return dungeon
-
-# Dungeon drawing function
-def draw_dungeon(dungeon):
-    for y in range(DUNGEON_HEIGHT):
-        for x in range(DUNGEON_WIDTH):
-            color = WHITE if dungeon[y][x] == 0 else BLACK
-            pygame.draw.rect(screen, color, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
-
-# Enemy class
-class Enemy(pygame.sprite.Sprite):
+class Player:
     def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(RED)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.speed = TILE_SIZE // 2
+        self.x = x
+        self.y = y
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+        self.color = GREEN  # Set player color to green
 
-    def update(self, dungeon):
-        direction = random.choice(['up', 'down', 'left', 'right'])
-        new_x = self.rect.x
-        new_y = self.rect.y
+    def draw(self):
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
 
-        if direction == 'up':
-            new_y -= self.speed
-        elif direction == 'down':
-            new_y += self.speed
-        elif direction == 'left':
-            new_x -= self.speed
-        elif direction == 'right':
-            new_x += self.speed
+    def move(self, dx, dy, dungeon, monsters):
+        # Calculate new position
+        new_x = self.x + dx
+        new_y = self.y + dy
 
-        # Ensure the enemy stays within bounds and only moves to valid spaces
-        if 0 <= new_x // TILE_SIZE < DUNGEON_WIDTH and 0 <= new_y // TILE_SIZE < DUNGEON_HEIGHT:
-            if dungeon[new_y // TILE_SIZE][new_x // TILE_SIZE] == 0:  # Check if it's a white space (empty)
-                self.rect.x = new_x
-                self.rect.y = new_y
+        # Ensure the player doesn't move out of bounds
+        if new_x < 0 or new_x + self.width > SCREEN_WIDTH or new_y < 0 or new_y + self.height > SCREEN_HEIGHT:
+            return  # Don't move if out of bounds
 
-        # Keep enemy within bounds
-        self.rect.x = max(0, min(self.rect.x, SCREEN_WIDTH - TILE_SIZE))
-        self.rect.y = max(0, min(self.rect.y, SCREEN_HEIGHT - TILE_SIZE))
+        # Check if the new position is within bounds and not a wall
+        if self.can_move(new_x, new_y, dungeon, monsters):
+            self.x = new_x
+            self.y = new_y
 
-# Add enemies to the game
-def add_enemies(all_sprites, dungeon):
-    for _ in range(5):  # Create 5 enemies
-        x = random.randint(0, DUNGEON_WIDTH - 1) * TILE_SIZE
-        y = random.randint(0, DUNGEON_HEIGHT - 1) * TILE_SIZE
-        # Ensure the enemy spawns on a white tile
-        while dungeon[y // TILE_SIZE][x // TILE_SIZE] != 0:
-            x = random.randint(0, DUNGEON_WIDTH - 1) * TILE_SIZE
-            y = random.randint(0, DUNGEON_HEIGHT - 1) * TILE_SIZE
-        enemy = Enemy(x, y)
-        all_sprites.add(enemy)
+    def can_move(self, new_x, new_y, dungeon, monsters):
+        # Calculate the grid coordinates for the new position
+        top_left_x = new_x // TILE_SIZE
+        top_left_y = new_y // TILE_SIZE
+        bottom_right_x = (new_x + self.width - 1) // TILE_SIZE
+        bottom_right_y = (new_y + self.height - 1) // TILE_SIZE
 
-# Main game loop
-def main():
-    running = True
-    player = Player()
-    all_sprites = pygame.sprite.Group()
-    all_sprites.add(player)
+        # Ensure the indices are within the bounds of the grid
+        if not (0 <= top_left_x < dungeon.width and 0 <= top_left_y < dungeon.height and
+                0 <= bottom_right_x < dungeon.width and 0 <= bottom_right_y < dungeon.height):
+            return False
 
-    dungeon = generate_dungeon()
-    add_enemies(all_sprites, dungeon)
+        # Check all four corners of the player's new position
+        if dungeon.grid[top_left_y][top_left_x] == 1 or \
+           dungeon.grid[top_left_y][bottom_right_x] == 1 or \
+           dungeon.grid[bottom_right_y][top_left_x] == 1 or \
+           dungeon.grid[bottom_right_y][bottom_right_x] == 1:
+            return False  # One of the corners is a wall, so the move is not allowed
 
-    while running:
-        screen.fill(BLACK)
-        keys = pygame.key.get_pressed()
+        # Check if the new position collides with any monsters
+        for monster in monsters:
+            monster_rect = pygame.Rect(monster.x, monster.y, monster.width, monster.height)
+            player_rect = pygame.Rect(new_x, new_y, self.width, self.height)
+            if player_rect.colliderect(monster_rect):
+                return False  # Collided with the monster, can't move
 
-        # Handle events
+        return True
+
+class Monster:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+        self.color = RED  # Set monster color to red
+
+    def draw(self):
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+
+    def distance_to_player(self, player):
+        # Calculate distance from the monster to the player using Euclidean distance
+        return math.sqrt((self.x - player.x)**2 + (self.y - player.y)**2)
+
+class Game:
+    def __init__(self):
+        self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
+        self.player = Player(1 * TILE_SIZE, 1 * TILE_SIZE)  # Start at (1, 1) for point A
+        self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Exit at bottom-right corner
+        self.monsters = [Monster(random.randint(1, SCREEN_WIDTH // TILE_SIZE - 1) * TILE_SIZE, 
+                                 random.randint(1, SCREEN_HEIGHT // TILE_SIZE - 1) * TILE_SIZE)]
+        self.running = True
+        self.proximity_message = ""  # Message to show when near a monster
+
+        # Font for text
+        self.font = pygame.font.Font(None, 36)
+
+    def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                self.running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and self.proximity_message == "Press Space to Fight":
+                    print("Fighting started!")  # Trigger the battle (placeholder)
 
-        # Update player movement (pass dungeon for validation)
-        player.update(keys, dungeon)
+    def update(self):
+        keys = pygame.key.get_pressed()
 
-        # Update all enemy movement (pass dungeon for validation)
-        for enemy in all_sprites:
-            if isinstance(enemy, Enemy):
-                enemy.update(dungeon)
+        # Player movement handling with WASD keys
+        if keys[pygame.K_a]:  # Move left
+            self.player.move(-PLAYER_SPEED, 0, self.dungeon, self.monsters)
+        if keys[pygame.K_d]:  # Move right
+            self.player.move(PLAYER_SPEED, 0, self.dungeon, self.monsters)
+        if keys[pygame.K_w]:  # Move up
+            self.player.move(0, -PLAYER_SPEED, self.dungeon, self.monsters)
+        if keys[pygame.K_s]:  # Move down
+            self.player.move(0, PLAYER_SPEED, self.dungeon, self.monsters)
 
-        # Reset player's ability to move after one update cycle
-        player.reset_move()
+        # Check proximity to monsters
+        self.proximity_message = ""
+        for monster in self.monsters:
+            if monster.distance_to_player(self.player) <= PROXIMITY_RANGE:
+                self.proximity_message = "Press Space to Fight"
+                break  # Display the message if near any monster
 
-        # Draw dungeon and all sprites
-        draw_dungeon(dungeon)
-        all_sprites.draw(screen)
+    def draw(self):
+        # Fill the screen with black
+        screen.fill(BLACK)
+
+        # Draw dungeon, player, and monsters
+        self.dungeon.draw()
+        self.player.draw()
+
+        # Draw exit (point B) as a yellow square
+        pygame.draw.rect(screen, YELLOW, (self.exit[0], self.exit[1], TILE_SIZE, TILE_SIZE))
+
+        for monster in self.monsters:
+            monster.draw()
+
+        # Display the "Press Space to Fight" message if proximity condition is met
+        if self.proximity_message:
+            text = self.font.render(self.proximity_message, True, WHITE)
+            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT - 50))
 
         # Update the display
         pygame.display.flip()
 
-        # Set the frame rate
-        clock.tick(FPS)
+    def run(self):
+        while self.running:
+            self.handle_events()
+            self.update()
+            self.draw()
+            clock.tick(FPS)
 
-    pygame.quit()
+# Create the game object
+game = Game()
 
-# Run the game
-if __name__ == "__main__":
-    main()
+# Start the game loop
+game.run()
+
+# Quit Pygame
+pygame.quit()
