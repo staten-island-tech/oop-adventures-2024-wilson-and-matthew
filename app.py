@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+import time
 
 # Initialize pygame
 pygame.init()
@@ -62,6 +63,12 @@ class Dungeon:
 
         return grid
 
+    def clear_walls(self):
+        # Change all walls (1's) to paths (0's) to create an empty arena
+        for y in range(self.height):
+            for x in range(self.width):
+                self.grid[y][x] = 0  # Remove walls
+
     def draw(self):
         # Draw the dungeon
         for y in range(self.height):
@@ -76,6 +83,7 @@ class Player:
         self.width = TILE_SIZE
         self.height = TILE_SIZE
         self.color = GREEN  # Set player color to green
+        self.hp = 100  # Player's health points
 
     def draw(self):
         pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
@@ -129,22 +137,85 @@ class Monster:
         self.width = TILE_SIZE
         self.height = TILE_SIZE
         self.color = RED  # Set monster color to red
+        self.projectiles = []
+        self.last_shot_time = time.time()  # To manage projectile shooting interval
+
+    def draw(self):
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+        for projectile in self.projectiles:
+            projectile.draw()
+
+    def shoot(self, player):
+        # Fire a projectile every 0.5 seconds
+        current_time = time.time()
+        if current_time - self.last_shot_time > 0.5:  # Adjusted to 0.5 seconds
+            # Calculate the direction from the monster to the player
+            direction_x = player.x - self.x
+            direction_y = player.y - self.y
+            distance = math.sqrt(direction_x**2 + direction_y**2)
+            # Normalize the direction
+            direction_x /= distance
+            direction_y /= distance
+            # Create a new projectile
+            projectile = Projectile(self.x + self.width // 2, self.y + self.height // 2, direction_x, direction_y)
+            self.projectiles.append(projectile)
+            self.last_shot_time = current_time
+
+    def update_projectiles(self, player):
+        # Move projectiles and check for collisions with the player
+        for projectile in self.projectiles[:]:
+            projectile.update()
+            if projectile.collides_with(player):
+                player.hp -= 5  # Decrease player HP by 5 when hit
+                self.projectiles.remove(projectile)  # Remove the projectile upon collision
+
+    def distance_to_player(self, player):
+        # Calculate the distance from the monster to the player using Euclidean distance
+        return math.sqrt((self.x - player.x)**2 + (self.y - player.y)**2)
+
+    def spawn(self, dungeon):
+        # Spawn the monster only on a valid white tile (path)
+        while True:
+            x = random.randint(1, dungeon.width - 1) * TILE_SIZE
+            y = random.randint(1, dungeon.height - 1) * TILE_SIZE
+            grid_x = x // TILE_SIZE
+            grid_y = y // TILE_SIZE
+            if dungeon.grid[grid_y][grid_x] == 0:  # 0 represents a path
+                self.x = x
+                self.y = y
+                break
+
+class Projectile:
+    def __init__(self, x, y, direction_x, direction_y):
+        self.x = x
+        self.y = y
+        self.width = 10
+        self.height = 10
+        self.color = RED  # Red projectile to match the enemy's color
+        self.speed = 3
+        self.direction_x = direction_x
+        self.direction_y = direction_y
+
+    def update(self):
+        self.x += self.direction_x * self.speed
+        self.y += self.direction_y * self.speed
 
     def draw(self):
         pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
 
-    def distance_to_player(self, player):
-        # Calculate distance from the monster to the player using Euclidean distance
-        return math.sqrt((self.x - player.x)**2 + (self.y - player.y)**2)
+    def collides_with(self, player):
+        player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
+        projectile_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        return player_rect.colliderect(projectile_rect)
 
 class Game:
     def __init__(self):
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
         self.player = Player(1 * TILE_SIZE, 1 * TILE_SIZE)  # Start at (1, 1) for point A
         self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Exit at bottom-right corner
-        self.monsters = [Monster(random.randint(1, SCREEN_WIDTH // TILE_SIZE - 1) * TILE_SIZE, 
-                                 random.randint(1, SCREEN_HEIGHT // TILE_SIZE - 1) * TILE_SIZE)]
-        self.running = True
+        self.monster = Monster(0, 0)
+        self.monster.spawn(self.dungeon)
+        self.fight_started = False
         self.proximity_message = ""  # Message to show when near a monster
 
         # Font for text
@@ -156,27 +227,41 @@ class Game:
                 self.running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and self.proximity_message == "Press Space to Fight":
-                    print("Fighting started!")  # Trigger the battle (placeholder)
+                    self.start_boss_fight()
+
+    def start_boss_fight(self):
+        # Clear all walls to create an empty arena, including the exit (yellow square)
+        self.dungeon.clear_walls()
+        self.player.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center player at the bottom
+        self.player.y = SCREEN_HEIGHT - TILE_SIZE - 10
+        self.monster.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center monster
+        self.monster.y = SCREEN_HEIGHT // 2 - TILE_SIZE // 2  # Center monster
+        self.fight_started = True
 
     def update(self):
         keys = pygame.key.get_pressed()
 
         # Player movement handling with WASD keys
         if keys[pygame.K_a]:  # Move left
-            self.player.move(-PLAYER_SPEED, 0, self.dungeon, self.monsters)
+            self.player.move(-PLAYER_SPEED, 0, self.dungeon, [self.monster])
         if keys[pygame.K_d]:  # Move right
-            self.player.move(PLAYER_SPEED, 0, self.dungeon, self.monsters)
+            self.player.move(PLAYER_SPEED, 0, self.dungeon, [self.monster])
         if keys[pygame.K_w]:  # Move up
-            self.player.move(0, -PLAYER_SPEED, self.dungeon, self.monsters)
+            self.player.move(0, -PLAYER_SPEED, self.dungeon, [self.monster])
         if keys[pygame.K_s]:  # Move down
-            self.player.move(0, PLAYER_SPEED, self.dungeon, self.monsters)
+            self.player.move(0, PLAYER_SPEED, self.dungeon, [self.monster])
 
         # Check proximity to monsters
         self.proximity_message = ""
-        for monster in self.monsters:
-            if monster.distance_to_player(self.player) <= PROXIMITY_RANGE:
+        if not self.fight_started:
+            dist = self.monster.distance_to_player(self.player)
+            if dist <= PROXIMITY_RANGE:
                 self.proximity_message = "Press Space to Fight"
-                break  # Display the message if near any monster
+
+        # Boss fight logic
+        if self.fight_started:
+            self.monster.shoot(self.player)
+            self.monster.update_projectiles(self.player)
 
     def draw(self):
         # Fill the screen with black
@@ -186,21 +271,26 @@ class Game:
         self.dungeon.draw()
         self.player.draw()
 
-        # Draw exit (point B) as a yellow square
-        pygame.draw.rect(screen, YELLOW, (self.exit[0], self.exit[1], TILE_SIZE, TILE_SIZE))
+        # Do not draw exit (yellow square) if fight has started
+        if not self.fight_started:
+            pygame.draw.rect(screen, YELLOW, (self.exit[0], self.exit[1], TILE_SIZE, TILE_SIZE))
 
-        for monster in self.monsters:
-            monster.draw()
+        self.monster.draw()
 
         # Display the "Press Space to Fight" message if proximity condition is met
         if self.proximity_message:
             text = self.font.render(self.proximity_message, True, WHITE)
             screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT - 50))
 
+        # Display player's HP
+        hp_text = self.font.render(f"HP: {self.player.hp}", True, GREEN)
+        screen.blit(hp_text, (10, 10))
+
         # Update the display
         pygame.display.flip()
 
     def run(self):
+        self.running = True
         while self.running:
             self.handle_events()
             self.update()
