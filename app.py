@@ -84,9 +84,15 @@ class Player:
         self.height = TILE_SIZE
         self.color = GREEN  # Set player color to green
         self.hp = 100  # Player's health points
+        self.pistol = None  # Pistol will be assigned later when the fight starts
+        self.bullets = []  # List of bullets the player shoots
+        self.last_shot_time = time.time()  # Track the last time the player shot a bullet
 
     def draw(self):
         pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+        # Draw all bullets
+        for bullet in self.bullets:
+            bullet.draw()
 
     def move(self, dx, dy, dungeon, monsters):
         # Calculate new position
@@ -130,6 +136,56 @@ class Player:
 
         return True
 
+    def shoot(self):
+        current_time = time.time()
+        if self.pistol and current_time - self.last_shot_time >= 0.5:  # Check cooldown
+            mouse_x, mouse_y = pygame.mouse.get_pos()  # Get mouse position
+            direction_x = mouse_x - (self.x + self.width // 2)  # Direction to mouse
+            direction_y = mouse_y - (self.y + self.height // 2)
+
+            # Normalize the direction
+            distance = math.sqrt(direction_x ** 2 + direction_y ** 2)
+            if distance != 0:
+                direction_x /= distance
+                direction_y /= distance
+
+            bullet = Bullet(self.x + self.width // 2, self.y + self.height // 2, direction_x, direction_y)
+            self.bullets.append(bullet)
+
+            # Update last shot time
+            self.last_shot_time = current_time
+
+    def update_bullets(self, monster):
+        # Update bullet positions and check for collisions with the monster
+        for bullet in self.bullets[:]:
+            bullet.update()
+            if bullet.collides_with(monster):
+                monster.hp -= 5  # Bullet does 5 damage to the monster
+                self.bullets.remove(bullet)  # Remove the bullet on collision
+
+class Bullet:
+    def __init__(self, x, y, direction_x, direction_y):
+        self.x = x
+        self.y = y
+        self.width = 10
+        self.height = 10
+        self.color = GREEN  # Green bullet to match the player
+        self.speed = 10  # Bullet speed
+        self.direction_x = direction_x
+        self.direction_y = direction_y
+
+    def update(self):
+        self.x += self.direction_x * self.speed
+        self.y += self.direction_y * self.speed
+
+    def draw(self):
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+
+    def collides_with(self, monster):
+        monster_rect = pygame.Rect(monster.x, monster.y, monster.width, monster.height)
+        bullet_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        return bullet_rect.colliderect(monster_rect)
+
 class Monster:
     def __init__(self, x, y):
         self.x = x
@@ -137,6 +193,7 @@ class Monster:
         self.width = TILE_SIZE
         self.height = TILE_SIZE
         self.color = RED  # Set monster color to red
+        self.hp = 100  # Add HP for the monster
         self.projectiles = []
         self.last_shot_time = time.time()  # To manage projectile shooting interval
 
@@ -237,6 +294,7 @@ class Game:
         self.monster.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center monster
         self.monster.y = SCREEN_HEIGHT // 2 - TILE_SIZE // 2  # Center monster
         self.fight_started = True
+        self.player.pistol = True  # Equip player with a pistol
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -251,6 +309,10 @@ class Game:
         if keys[pygame.K_s]:  # Move down
             self.player.move(0, PLAYER_SPEED, self.dungeon, [self.monster])
 
+        # Handle shooting when space key is pressed
+        if self.fight_started and pygame.mouse.get_pressed()[0]:  # Left mouse button
+            self.player.shoot()
+
         # Check proximity to monsters
         self.proximity_message = ""
         if not self.fight_started:
@@ -262,6 +324,7 @@ class Game:
         if self.fight_started:
             self.monster.shoot(self.player)
             self.monster.update_projectiles(self.player)
+            self.player.update_bullets(self.monster)
 
     def draw(self):
         # Fill the screen with black
@@ -285,6 +348,11 @@ class Game:
         # Display player's HP
         hp_text = self.font.render(f"HP: {self.player.hp}", True, GREEN)
         screen.blit(hp_text, (10, 10))
+
+        # Display monster's HP if fight has started
+        if self.fight_started:
+            monster_hp_text = self.font.render(f"HP: {self.monster.hp}", True, RED)
+            screen.blit(monster_hp_text, (SCREEN_WIDTH - 100, 10))  # Display monster's HP at the top-right
 
         # Update the display
         pygame.display.flip()
