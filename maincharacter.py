@@ -1,11 +1,10 @@
 class maincharacter:
-    def __init__(self, name, inventory, money, hp, attack, speed):
+    def __init__(self, name, inventory, money, hp, attack):
         self.name = name
         self.inventory = inventory
         self.money = money
         self.hp = hp
         self.attack = attack
-        self.speed = speed
         self.is_alive = True
 
     def buy(self, item, money):
@@ -36,6 +35,10 @@ class maincharacter:
         print(f"Remaining items: {self.inventory}")
         print(f"Remaining money: {self.money}")
 
+
+
+
+
 inventory = {
 
 }
@@ -43,3 +46,5 @@ inventory = {
 special = {
 
 }
+
+
