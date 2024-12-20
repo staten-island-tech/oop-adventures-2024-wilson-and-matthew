@@ -277,6 +277,17 @@ class Game:
 
         # Font for text
         self.font = pygame.font.Font(None, 36)
+        self.running = True
+
+    def reset_game(self):
+        # Reset the dungeon, player, monster, and any other game state
+        self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
+        self.player = Player(1 * TILE_SIZE, 1 * TILE_SIZE)  # Reset player position
+        self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Reset exit
+        self.monster = Monster(0, 0)
+        self.monster.spawn(self.dungeon)  # Spawn monster at a new location
+        self.fight_started = False
+        self.proximity_message = ""  # Reset message
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -297,6 +308,10 @@ class Game:
         self.player.pistol = True  # Equip player with a pistol
 
     def update(self):
+        if self.player.hp <= 0:  # Check if the player's HP is 0 or less
+            self.reset_game()  # Reset the game
+            return  # Stop updating the rest of the game logic
+
         keys = pygame.key.get_pressed()
 
         # Player movement handling with WASD keys
@@ -358,7 +373,6 @@ class Game:
         pygame.display.flip()
 
     def run(self):
-        self.running = True
         while self.running:
             self.handle_events()
             self.update()
