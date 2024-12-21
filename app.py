@@ -40,6 +40,7 @@ class Dungeon:
         self.width = width
         self.height = height
         self.grid = self.generate_maze()
+        self.original_grid = [row[:] for row in self.grid]  # Store the original grid
 
     def generate_maze(self):
         # Initialize the grid with walls (1's)
@@ -68,6 +69,10 @@ class Dungeon:
         for y in range(self.height):
             for x in range(self.width):
                 self.grid[y][x] = 0  # Remove walls
+
+    def restore_walls(self):
+        # Restore the dungeon walls to their original state
+        self.grid = [row[:] for row in self.original_grid]
 
     def draw(self):
         # Draw the dungeon
@@ -241,6 +246,18 @@ class Monster:
                 self.x = x
                 self.y = y
                 break
+    def is_dead(self):
+        return self.hp <= 0
+
+    def remove_from_game(self, dungeon):
+        # Reset the monster's position to be out of the player's path
+        self.x = -TILE_SIZE  # Move the monster off-screen
+        self.y = -TILE_SIZE
+        # Optionally, remove any projectiles as well
+        self.projectiles.clear()
+        self.hp = 0  # Set the HP to 0 to signify it is dead
+        # Restore the dungeon grid (no monster blocking path)
+        dungeon.grid[self.y // TILE_SIZE][self.x // TILE_SIZE] = 0  # Make sure the monster's position is clear
 
 class Projectile:
     def __init__(self, x, y, direction_x, direction_y):
@@ -274,6 +291,7 @@ class Game:
         self.monster.spawn(self.dungeon)
         self.fight_started = False
         self.proximity_message = ""  # Message to show when near a monster
+        self.starting_position = (self.player.x, self.player.y)
 
         # Font for text
         self.font = pygame.font.Font(None, 36)
@@ -282,7 +300,7 @@ class Game:
     def reset_game(self):
         # Reset the dungeon, player, monster, and any other game state
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
-        self.player = Player(1 * TILE_SIZE, 1 * TILE_SIZE)  # Reset player position
+        self.player = Player(self.starting_position[0], self.starting_position[1])  # Reset player position
         self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Reset exit
         self.monster = Monster(0, 0)
         self.monster.spawn(self.dungeon)  # Spawn monster at a new location
@@ -298,6 +316,9 @@ class Game:
                     self.start_boss_fight()
 
     def start_boss_fight(self):
+        # Store the player's position before starting the fight
+        self.starting_position = (self.player.x, self.player.y)
+        
         # Clear all walls to create an empty arena, including the exit (yellow square)
         self.dungeon.clear_walls()
         self.player.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center player at the bottom
@@ -307,10 +328,34 @@ class Game:
         self.fight_started = True
         self.player.pistol = True  # Equip player with a pistol
 
+    def end_boss_fight(self):
+        # Restore dungeon grid
+        self.dungeon.restore_walls()
+        
+        # Reset monster position and remove it from the dungeon
+        self.monster.remove_from_game(self.dungeon)
+
+        # Restore the yellow exit square
+        self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
+        
+        # Teleport the player back to their original position
+        self.player.x, self.player.y = self.starting_position
+        
+        # End the fight
+        self.fight_started = False
+        self.proximity_message = ""  # Clear any messages
+
     def update(self):
         if self.player.hp <= 0:  # Check if the player's HP is 0 or less
             self.reset_game()  # Reset the game
             return  # Stop updating the rest of the game logic
+
+        # Update monster state
+        if self.monster.is_dead():
+            self.monster.remove_from_game(self.dungeon)
+            self.dungeon.restore_walls()  # Restore dungeon walls
+            self.end_boss_fight()  # End the boss fight and continue the game
+            return  # Stop further updates for the monster
 
         keys = pygame.key.get_pressed()
 
