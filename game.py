@@ -21,16 +21,18 @@ class Enemy:
             print(f"{self.name} has been defeated!")
 
 class ShopDude:
-    def __init__(self, name, stock):
+    def __init__(self, name, stock, prices):
         self.name = name
         self.stock = stock
+        self.prices = prices  # Dictionary of item prices
 
     def sell(self, item, player):
         if item in self.stock:
-            if player.money >= 10:  # Fixed cost per item
+            price = self.prices[item]
+            if player.money >= price:
                 player.inventory.append(item)
-                player.money -= 10
-                print(f"{player.name} bought a {item}. Remaining money: {player.money}")
+                player.money -= price
+                print(f"{player.name} bought a {item} for {price}. Remaining money: {player.money}")
             else:
                 print(f"Not enough money to buy {item}.")
         else:
@@ -44,22 +46,34 @@ class MainCharacter:
         self.hp = hp
         self.attack = attack
         self.speed = speed
+        self.defense = 0  # Start with no defense
         self.is_alive = True
 
     def buy(self, item, shop):
         shop.sell(item, self)
 
     def take_damage(self, eattack):
-        self.hp -= eattack
-        print(f"{self.name} takes {eattack} damage!")
+        # Reduce damage based on defense
+        damage_taken = max(0, eattack - self.defense)  # Damage cannot be negative
+        self.hp -= damage_taken
+        print(f"{self.name} takes {damage_taken} damage (after defense)!")
         if self.hp <= 0:
             self.is_alive = False
             self.die()
 
     def attack_enemy(self, enemy):
-        damage = max(0, self.attack - enemy.eattack)  # Basic damage calculation
+        damage = max(0, self.attack)  # Basic attack calculation
         print(f"{self.name} attacks {enemy.name} for {damage} damage!")
         enemy.take_damage(damage)
+
+    def use_item(self, item):
+        if item == "Health Potion" and "Health Potion" in self.inventory:
+            healing = 30  # Heal for 30 HP
+            self.hp += healing
+            self.inventory.remove("Health Potion")
+            print(f"{self.name} uses a Health Potion and heals for {healing} HP!")
+        else:
+            print(f"{item} is not available in your inventory!")
 
     def die(self):
         print(f"{self.name} has died! Game Over.")
@@ -76,7 +90,7 @@ class MainCharacter:
         return self.hp > 0
 
     def display_status(self):
-        print(f"{self.name}'s HP: {self.hp} | Money: {self.money}")
+        print(f"{self.name}'s HP: {self.hp} | Money: {self.money} | Attack: {self.attack} | Defense: {self.defense}")
         print(f"Inventory: {self.inventory}")
 
 class Game:
@@ -96,7 +110,11 @@ class Game:
             'ogre': "An Ogre blocks your way! Prepare for battle!",
         }
         self.player = None
-        self.shopkeeper = ShopDude("Shopkeeper", stock=["Health Potion", "Sword", "Shield"])
+        self.shopkeeper = ShopDude(
+            "Shopkeeper",
+            stock=["Health Potion", "Sword", "Shield"],
+            prices={"Health Potion": 10, "Sword": 25, "Shield": 30}
+        )
 
     def setup_game(self):
         # Create the player
@@ -104,12 +122,18 @@ class Game:
         self.player = MainCharacter(player_name, inventory=[], money=50, hp=100, attack=20, speed=5)
 
     def display_location(self, location):
+        if location not in self.locations:
+            print("Invalid location! You are at the start.")
+            return False
         print(self.locations[location])
         if location == 'forest':
             print("1. Fight Goblin")
             print("2. Fight Ogre")
             print("3. Go back to the start")
         elif location == 'shop':
+            print("Items available for purchase:")
+            for item, price in self.shopkeeper.prices.items():
+                print(f"{item}: {price} gold")
             print("1. Buy Health Potion")
             print("2. Buy Sword")
             print("3. Buy Shield")
@@ -117,6 +141,7 @@ class Game:
         elif location == 'start':
             print("1. Go to the forest")
             print("2. Go to the shop")
+        return True
 
     def move(self, current_location, choice):
         # Proper movement logic
@@ -139,9 +164,14 @@ class Game:
 
     def fight(self, enemy):
         while enemy.is_alive and self.player.check_alive():
+            # Display stats and inventory before each turn
+            print(f"\n{self.player.name}'s stats: HP = {self.player.hp}, Attack = {self.player.attack}, Defense = {self.player.defense}, Inventory: {self.player.inventory}")
+            print(f"{enemy.name}'s stats: HP = {enemy.ehp}, Attack = {enemy.eattack}")
+            
             print("\nWhat would you like to do?")
             print("1. Attack")
-            print("2. Flee")
+            print("2. Use Item")
+            print("3. Flee")
             action = input("Choose your action: ")
 
             if action == "1":
@@ -149,17 +179,35 @@ class Game:
                 if enemy.is_alive:
                     enemy.attack(self.player)
             elif action == "2":
+                print("Which item would you like to use?")
+                print("1. Health Potion")
+                item_choice = input("Choose an item to use: ")
+                if item_choice == "1":
+                    self.player.use_item("Health Potion")
+                    if enemy.is_alive:
+                        enemy.attack(self.player)
+                else:
+                    print("Invalid item.")
+            elif action == "3":
                 print(f"You fled from the {enemy.name}!")
                 break
             else:
                 print("Invalid action.")
+            # After the action, display updated stats
+            print(f"\n{self.player.name}'s stats: HP = {self.player.hp}, Attack = {self.player.attack}, Defense = {self.player.defense}, Inventory: {self.player.inventory}")
+            print(f"{enemy.name}'s stats: HP = {enemy.ehp}, Attack = {enemy.eattack}")
+            
+            if not self.player.check_alive():
+                break
 
     def play(self):
         self.setup_game()
         current_location = 'start'
 
         while self.player.check_alive():
-            self.display_location(current_location)
+            if not self.display_location(current_location):
+                current_location = 'start'  # Reset to a valid location (start)
+                continue
             choice = input("What will you do? ")
 
             # Handle movement logic
@@ -188,8 +236,12 @@ class Game:
                     self.player.buy("Health Potion", self.shopkeeper)
                 elif choice == "2":
                     self.player.buy("Sword", self.shopkeeper)
+                    self.player.attack += 10  # Sword increases attack
+                    print(f"{self.player.name} now has {self.player.attack} attack!")
                 elif choice == "3":
                     self.player.buy("Shield", self.shopkeeper)
+                    self.player.defense += 5  # Shield increases defense
+                    print(f"{self.player.name} now has {self.player.defense} defense!")
                 elif choice == "4":
                     current_location = self.move(current_location, "4")
                 else:
