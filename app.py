@@ -284,23 +284,26 @@ class Projectile:
 
 class Game:
     def __init__(self):
+        # Track initial spawn position
+        self.initial_spawn_position = (1 * TILE_SIZE, 1 * TILE_SIZE)  # or any initial spawn position you choose
+
+        # Initialize the game state
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
-        self.player = Player(1 * TILE_SIZE, 1 * TILE_SIZE)  # Start at (1, 1) for point A
+        self.player = Player(self.initial_spawn_position[0], self.initial_spawn_position[1])  # Set to initial spawn position
         self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Exit at bottom-right corner
         self.monster = Monster(0, 0)
         self.monster.spawn(self.dungeon)
         self.fight_started = False
         self.proximity_message = ""  # Message to show when near a monster
-        self.starting_position = (self.player.x, self.player.y)
 
         # Font for text
         self.font = pygame.font.Font(None, 36)
         self.running = True
 
     def reset_game(self):
-        # Reset the dungeon, player, monster, and any other game state
+        # Reset the dungeon, player, monster, and other game states
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
-        self.player = Player(self.starting_position[0], self.starting_position[1])  # Reset player position
+        self.player = Player(self.initial_spawn_position[0], self.initial_spawn_position[1])  # Reset player to the initial spawn position
         self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Reset exit
         self.monster = Monster(0, 0)
         self.monster.spawn(self.dungeon)  # Spawn monster at a new location
@@ -328,22 +331,22 @@ class Game:
         self.fight_started = True
         self.player.pistol = True  # Equip player with a pistol
 
-    def end_boss_fight(self):
-        # Restore dungeon grid
-        self.dungeon.restore_walls()
-        
-        # Reset monster position and remove it from the dungeon
-        self.monster.remove_from_game(self.dungeon)
+        def end_boss_fight(self):
+            # Restore dungeon grid
+            self.dungeon.restore_walls()
+            
+            # Reset the monster position and remove it from the dungeon
+            self.monster.remove_from_game(self.dungeon)
 
-        # Restore the yellow exit square
-        self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
-        
-        # Teleport the player back to their original position
-        self.player.x, self.player.y = self.starting_position
-        
-        # End the fight
-        self.fight_started = False
-        self.proximity_message = ""  # Clear any messages
+            # Restore the yellow exit square
+            self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
+            
+            # Return the player to their original position
+            self.player.x, self.player.y = self.starting_position
+            
+            # End the fight
+            self.fight_started = False
+            self.proximity_message = ""  # Clear any messages
 
     def update(self):
         if self.player.hp <= 0:  # Check if the player's HP is 0 or less
@@ -354,7 +357,7 @@ class Game:
         if self.monster.is_dead():
             self.monster.remove_from_game(self.dungeon)
             self.dungeon.restore_walls()  # Restore dungeon walls
-            self.end_boss_fight()  # End the boss fight and continue the game
+            self.end_boss_fight()  # End the boss fight and return to the starting position
             return  # Stop further updates for the monster
 
         keys = pygame.key.get_pressed()
@@ -432,3 +435,25 @@ game.run()
 
 # Quit Pygame
 pygame.quit()
+
+
+
+def end_boss_fight(self):
+    # Restore dungeon grid
+    self.dungeon.restore_walls()
+    
+    # Reset the monster's position and remove it from the dungeon
+    self.monster.remove_from_game(self.dungeon)
+
+    # Restore the yellow exit square
+    self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
+    
+    # Return the player to their original position
+    self.player.x, self.player.y = self.starting_position
+    
+    # End the fight
+    self.fight_started = False
+    self.proximity_message = ""  # Clear any messages
+    
+    # Make sure player can move freely after the fight
+    self.player.hp = 100  # Ensure player health is restored (if needed)
