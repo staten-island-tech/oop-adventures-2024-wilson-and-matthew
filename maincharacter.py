@@ -1,4 +1,4 @@
-class maincharacter:
+class Maincharacter:
     def __init__(self, name, inventory, money, hp, attack):
         self.name = name
         self.inventory = inventory
@@ -11,6 +11,11 @@ class maincharacter:
         self.inventory.append(item)
         print(self.inventory)
         self.inventory.remove(money)
+        
+    def attack_enemy(self, enemy):
+        damage = max(0, self.attack)  # Basic attack calculation
+        print(f"{self.name} attacks {enemy.name} for {damage} damage!")
+        enemy.take_damage(damage)
 
     def take_damage(self, eattack):
         self.health -= eattack
