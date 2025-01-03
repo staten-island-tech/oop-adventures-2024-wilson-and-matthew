@@ -282,12 +282,12 @@ class Projectile:
         projectile_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         return player_rect.colliderect(projectile_rect)
 
+# Replace this part of your Game class to fix the bug:
+
 class Game:
     def __init__(self):
         # Track initial spawn position
-        self.initial_spawn_position = (1 * TILE_SIZE, 1 * TILE_SIZE)  # or any initial spawn position you choose
-
-        # Initialize the game state
+        self.initial_spawn_position = (1 * TILE_SIZE, 1 * TILE_SIZE)  # Initial spawn position
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
         self.player = Player(self.initial_spawn_position[0], self.initial_spawn_position[1])  # Set to initial spawn position
         self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Exit at bottom-right corner
@@ -295,8 +295,6 @@ class Game:
         self.monster.spawn(self.dungeon)
         self.fight_started = False
         self.proximity_message = ""  # Message to show when near a monster
-
-        # Font for text
         self.font = pygame.font.Font(None, 36)
         self.running = True
 
@@ -322,47 +320,46 @@ class Game:
         # Store the player's position before starting the fight
         self.starting_position = (self.player.x, self.player.y)
         
-        # Clear all walls to create an empty arena, including the exit (yellow square)
+        # Clear all walls to create an empty arena
         self.dungeon.clear_walls()
-        self.player.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center player at the bottom
+        self.player.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center player
         self.player.y = SCREEN_HEIGHT - TILE_SIZE - 10
         self.monster.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center monster
         self.monster.y = SCREEN_HEIGHT // 2 - TILE_SIZE // 2  # Center monster
         self.fight_started = True
         self.player.pistol = True  # Equip player with a pistol
 
-        def end_boss_fight(self):
-            # Restore dungeon grid
-            self.dungeon.restore_walls()
-            
-            # Reset the monster position and remove it from the dungeon
-            self.monster.remove_from_game(self.dungeon)
+    def end_boss_fight(self):
+        # Restore dungeon grid and reinitialize the game state
+        self.dungeon.restore_walls()
+        
+        # Move monster out of the screen and reset its state
+        self.monster.remove_from_game(self.dungeon)
 
-            # Restore the yellow exit square
-            self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
-            
-            # Return the player to their original position
-            self.player.x, self.player.y = self.starting_position
-            
-            # End the fight
-            self.fight_started = False
-            self.proximity_message = ""  # Clear any messages
+        # Restore the exit position
+        self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
+
+        # Reset player to the starting position (safe location)
+        self.player.x, self.player.y = self.starting_position
+
+        # End the fight and reset state
+        self.fight_started = False
+        self.proximity_message = ""  # Clear any messages
 
     def update(self):
         if self.player.hp <= 0:  # Check if the player's HP is 0 or less
-            self.reset_game()  # Reset the game
+            self.reset_game()  # Reset the game state
             return  # Stop updating the rest of the game logic
 
-        # Update monster state
+        # Check if the monster is dead
         if self.monster.is_dead():
             self.monster.remove_from_game(self.dungeon)
             self.dungeon.restore_walls()  # Restore dungeon walls
             self.end_boss_fight()  # End the boss fight and return to the starting position
             return  # Stop further updates for the monster
 
+        # Handle player movement
         keys = pygame.key.get_pressed()
-
-        # Player movement handling with WASD keys
         if keys[pygame.K_a]:  # Move left
             self.player.move(-PLAYER_SPEED, 0, self.dungeon, [self.monster])
         if keys[pygame.K_d]:  # Move right
@@ -435,25 +432,3 @@ game.run()
 
 # Quit Pygame
 pygame.quit()
-
-
-
-def end_boss_fight(self):
-    # Restore dungeon grid
-    self.dungeon.restore_walls()
-    
-    # Reset the monster's position and remove it from the dungeon
-    self.monster.remove_from_game(self.dungeon)
-
-    # Restore the yellow exit square
-    self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
-    
-    # Return the player to their original position
-    self.player.x, self.player.y = self.starting_position
-    
-    # End the fight
-    self.fight_started = False
-    self.proximity_message = ""  # Clear any messages
-    
-    # Make sure player can move freely after the fight
-    self.player.hp = 100  # Ensure player health is restored (if needed)
