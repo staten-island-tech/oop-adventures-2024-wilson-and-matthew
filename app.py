@@ -246,8 +246,6 @@ class Monster:
                 self.x = x
                 self.y = y
                 break
-    def is_dead(self):
-        return self.hp <= 0
 
     def remove_from_game(self, dungeon):
         # Reset the monster's position to be out of the player's path
@@ -352,7 +350,7 @@ class Game:
             return  # Stop updating the rest of the game logic
 
         # Check if the monster is dead
-        if self.monster.is_dead():
+        if self.monster.hp <= 0:
             self.monster.remove_from_game(self.dungeon)
             self.dungeon.restore_walls()  # Restore dungeon walls
             self.end_boss_fight()  # End the boss fight and return to the starting position
