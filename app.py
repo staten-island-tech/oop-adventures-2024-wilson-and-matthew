@@ -288,13 +288,13 @@ class Game:
         self.initial_spawn_position = (1 * TILE_SIZE, 1 * TILE_SIZE)  # Initial spawn position
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
         self.player = Player(self.initial_spawn_position[0], self.initial_spawn_position[1])  # Set to initial spawn position
-        self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Exit at bottom-right corner
         self.monster = Monster(0, 0)
         self.monster.spawn(self.dungeon)
         self.fight_started = False
         self.proximity_message = ""  # Message to show when near a monster
         self.font = pygame.font.Font(None, 36)
         self.running = True
+        self.score = 0  # Initialize the score
 
     def reset_game(self):
         # Reset the dungeon, player, monster, and other game states
@@ -305,6 +305,7 @@ class Game:
         self.monster.spawn(self.dungeon)  # Spawn monster at a new location
         self.fight_started = False
         self.proximity_message = ""  # Reset message
+        self.score = 0  # Reset score to 0 when the game is reset
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -332,12 +333,10 @@ class Game:
         self.dungeon.restore_walls()
         
         # Move monster out of the screen and reset its state
-        self.monster.remove_from_game(self.dungeon)
+        self.monster = Monster(0, 0)
+        self.monster.spawn(self.dungeon)  # Spawn monster at a new location
 
-        # Restore the exit position
-        self.exit = (SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)
-
-        # Reset player to the starting position (safe location)
+        # Reset score after player death
         self.player.x, self.player.y = self.starting_position
 
         # End the fight and reset state
@@ -354,6 +353,7 @@ class Game:
             self.monster.remove_from_game(self.dungeon)
             self.dungeon.restore_walls()  # Restore dungeon walls
             self.end_boss_fight()  # End the boss fight and return to the starting position
+            self.score += 10  # Increase score when the player defeats a monster
             return  # Stop further updates for the monster
 
         # Handle player movement
@@ -392,10 +392,7 @@ class Game:
         self.dungeon.draw()
         self.player.draw()
 
-        # Do not draw exit (yellow square) if fight has started
-        if not self.fight_started:
-            pygame.draw.rect(screen, YELLOW, (self.exit[0], self.exit[1], TILE_SIZE, TILE_SIZE))
-
+        # Draw monster
         self.monster.draw()
 
         # Display the "Press Space to Fight" message if proximity condition is met
@@ -411,6 +408,10 @@ class Game:
         if self.fight_started:
             monster_hp_text = self.font.render(f"HP: {self.monster.hp}", True, RED)
             screen.blit(monster_hp_text, (SCREEN_WIDTH - 100, 10))  # Display monster's HP at the top-right
+
+        # Display score in yellow text at the top middle of the screen
+        score_text = self.font.render(f"Score: {self.score}", True, YELLOW)
+        screen.blit(score_text, (SCREEN_WIDTH // 2 - score_text.get_width() // 2, 10))
 
         # Update the display
         pygame.display.flip()
