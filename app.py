@@ -266,7 +266,7 @@ class Merchant:
 
     def spawn(self, dungeon):
         # 20% chance to spawn on a valid white square (path)
-        if random.random() < 0.2:  # 20% chance
+        
             while True:
                 x = random.randint(1, dungeon.width - 1) * TILE_SIZE
                 y = random.randint(1, dungeon.height - 1) * TILE_SIZE
@@ -325,6 +325,7 @@ class Game:
         self.score = 0  # Initialize the score
         self.merchant_menu_active = False  # To track if the merchant menu is active
         self.previous_player_position = None  # Store the player's position when they interact with the merchant
+        self.merchant_original_position = (self.merchant.x, self.merchant.y)
 
     def reset_game(self):
         # Reset the dungeon, player, monster, and other game states
@@ -351,11 +352,14 @@ class Game:
                     # If the fight message is showing and space is pressed, start the fight
                     elif self.proximity_message == "Press Space to Fight":
                         self.start_boss_fight()
-
+    def teleport_merchant_back(self):
+        # Teleport the merchant back to their original position
+        self.merchant.x, self.merchant.y = self.merchant_original_position
     def toggle_merchant_menu(self):
         # Toggle the merchant menu state
         if self.merchant_menu_active:
             self.teleport_player_back()
+            self.teleport_merchant_back()  # Teleport merchant back to their original position
             self.dungeon.restore_walls()  # Restore dungeon walls when leaving the merchant menu
             self.merchant_menu_active = False  # Deactivate the merchant menu
         else:
@@ -492,11 +496,11 @@ class Game:
 
     def draw_merchant_menu(self):
         # Draw a simple merchant menu (for now, just a placeholder)
-        menu_text = self.font.render("Welcome to the Merchant! (Press Space to Exit)", True, WHITE)
+        menu_text = self.font.render("Welcome to the Merchant! (Press Space to Exit)", True, BLACK)
         screen.blit(menu_text, (SCREEN_WIDTH // 2 - menu_text.get_width() // 2, SCREEN_HEIGHT // 3))
 
         # You can add items to buy here (just a placeholder for now)
-        item_text = self.font.render("1. Buy Health Potion - 10 Gold", True, WHITE)
+        item_text = self.font.render("1. Buy Health Potion - 10 Gold", True, BLACK)
         screen.blit(item_text, (SCREEN_WIDTH // 2 - item_text.get_width() // 2, SCREEN_HEIGHT // 3 + 50))
 
     def run(self):
