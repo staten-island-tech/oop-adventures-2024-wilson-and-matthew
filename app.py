@@ -266,7 +266,7 @@ class Merchant:
 
     def spawn(self, dungeon):
         # 20% chance to spawn on a valid white square (path)
-        
+        if random.random() < 0.2:
             while True:
                 x = random.randint(1, dungeon.width - 1) * TILE_SIZE
                 y = random.randint(1, dungeon.height - 1) * TILE_SIZE
