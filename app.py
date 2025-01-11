@@ -3,38 +3,24 @@ import random
 import math
 import time
 
-# Initialize pygame
 pygame.init()
 
-# Screen dimensions
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FPS = 60
-
-# Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)  # Player color (green)
 RED = (255, 0, 0)    # Monster color (red)
 YELLOW = (255, 255, 0)  # Exit color (yellow)
-
-# Tile size
 TILE_SIZE = 40
-
-# Player movement speed
 PLAYER_SPEED = 5
+PROXIMITY_RANGE = 40
 
-# Proximity range to trigger fight message
-PROXIMITY_RANGE = 80  # The player must be within 80 pixels of the monster
-
-# Create the screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Dungeon Crawler")
-
-# Clock to control game frame rate
 clock = pygame.time.Clock()
 
-# Define the classes
 class Dungeon:
     def __init__(self, width, height):
         self.width = width
