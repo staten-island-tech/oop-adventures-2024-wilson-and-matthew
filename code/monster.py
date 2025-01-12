@@ -18,6 +18,8 @@ class Monster:
         self.height = TILE_SIZE
         self.color = RED
         self.base_hp = 100
+        self.scaling_factor = 10
+        self.hp = self.base_hp
         self.projectiles = [] 
         self.last_shot_time = time.time()
 
@@ -65,3 +67,6 @@ class Monster:
         self.projectiles.clear()
         self.hp = 0
         dungeon.grid[self.y // TILE_SIZE][self.x // TILE_SIZE] = 0
+
+    def update_hp(self, score):
+        self.hp = self.base_hp + score * self.scaling_factor

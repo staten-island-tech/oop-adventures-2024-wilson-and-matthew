@@ -108,6 +108,8 @@ class Game:
         self.dungeon.clear_walls()
         self.player.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center player
         self.player.y = SCREEN_HEIGHT - TILE_SIZE - 10
+        self.merchant.x = -TILE_SIZE
+        self.merchant.y = -TILE_SIZE
         self.monster.x = SCREEN_WIDTH // 2 - TILE_SIZE // 2  # Center monster
         self.monster.y = SCREEN_HEIGHT // 2 - TILE_SIZE // 2  # Center monster
         self.fight_started = True
@@ -131,13 +133,13 @@ class Game:
         if self.player.hp <= 0:  # Check if the player's HP is 0 or less
             self.reset_game()  # Reset the game state
             return  # Stop updating the rest of the game logic
-
-        # Check if the monster is dead
         if self.monster.hp <= 0:
             self.monster.remove_from_game(self.dungeon)
+            self.player.bullets.clear()
             self.dungeon.restore_walls()  # Restore dungeon walls
             self.end_boss_fight()  # End the boss fight and return to the starting position
             self.score += 10  # Increase score when the player defeats a monster
+            self.monster.update_hp(self.score)
             return  # Stop further updates for the monster
 
         # Handle player movement
@@ -164,7 +166,7 @@ class Game:
 
             dist_merchant = self.merchant.distance_to_player(self.player)
             if dist_merchant <= PROXIMITY_RANGE:
-                self.proximity_message = "Press Space to Open Merchant Menu"
+                self.proximity_message = "Press Space to Interact"
 
         # Boss fight logic
         if self.fight_started:
@@ -217,7 +219,7 @@ class Game:
         screen.blit(menu_text, (SCREEN_WIDTH // 2 - menu_text.get_width() // 2, SCREEN_HEIGHT // 3))
 
         # You can add items to buy here (just a placeholder for now)
-        item_text = self.font.render("1. Buy Health Potion - 10 Gold", True, BLACK)
+        item_text = self.font.render("Check Terminal", True, BLACK)
         screen.blit(item_text, (SCREEN_WIDTH // 2 - item_text.get_width() // 2, SCREEN_HEIGHT // 3 + 50))
 
     def run(self):
