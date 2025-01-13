@@ -18,7 +18,6 @@ YELLOW = (255, 255, 0)
 TILE_SIZE = 40
 PLAYER_SPEED = 5
 PROXIMITY_RANGE = 40
-HIGH_SCORE_FILE = 'high_score.txt'
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Dungeon Game")
@@ -45,7 +44,6 @@ class Game:
         self.previous_monster_position = None
         self.previous_player_position = None  # Store the player's position when they interact with the merchant
         self.merchant_original_position = (self.merchant.x, self.merchant.y)
-        self.high_score = self.load_high_score()
 
     def reset_game(self):
         # Reset the dungeon, player, monster, and other game states
@@ -58,22 +56,8 @@ class Game:
         self.fight_started = False
         self.proximity_message = ""  # Reset message
         self.score = 0
-        self.gold = 100
+        self.gold = 0
 
-    def load_high_score(self):
-        try:
-            with open(HIGH_SCORE_FILE, 'r') as file:
-                high_score = int(file.read())
-                return high_score
-        except FileNotFoundError:
-            return 0  # If the file doesn't exist, start with 0 high score
-        except ValueError:
-            return 0
-        
-    def save_high_score(self):
-        with open(HIGH_SCORE_FILE, 'w') as file:
-            file.write(str(self.high_score))
-        
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -125,9 +109,6 @@ class Game:
             self.merchant_menu_active = True
 
     def upgradedmg(self):
-        if not self.merchant_menu_active:
-            print("You must be in the merchant menu to upgrade")
-            return
         cost = 20
         if self.gold >= cost:
             Bullet.damage += 5
@@ -137,9 +118,6 @@ class Game:
             print("Not enough gold!")
 
     def upgradefr(self):
-        if not self.merchant_menu_active:
-            print("You must be in the merchant menu to upgrade.")
-            return
         cost = 20
         if self.gold >= cost:
             if self.player.fire_rate > 0.1:
@@ -152,6 +130,7 @@ class Game:
             print("Not enough gold!")
 
     def handle_terminal_input(self):
+        while self.running:
             if self.merchant_menu_active:
                 print("                        ")
                 print("--------MERCHANT--------")
@@ -165,11 +144,11 @@ class Game:
                 print("------------------------")
                 print("                        ")
                 choice = input("Choose an option: ")
-                return choice
-            return None
+                self.input_queue.put(choice)
     
-    def process_input(self, choice):
-        if self.merchant_menu_active:
+    def process_input(self):
+        if not self.input_queue.empty():
+            choice = self.input_queue.get()
             if choice == '1':
                 self.upgradedmg()
                     # elif choice == '2':
@@ -178,9 +157,9 @@ class Game:
                     #     upgradehp()
                     # elif choice == '4':
                     #     healhp()
-            else:
-                print("ERROR")
-                        # printMenu()
+                    # else:
+                    #     print("ERROR")
+                    #     printMenu()
 
     def start_boss_fight(self):
         # Store the player's position before starting the fight
@@ -223,9 +202,6 @@ class Game:
             self.score += 10
             self.gold += 10
             self.monster.update_hp(self.score)
-        if self.score > self.high_score:
-            self.high_score = self.score
-            self.save_high_score()
             return  # Stop further updates for the monster
 
         # Handle player movement
@@ -289,7 +265,7 @@ class Game:
             screen.blit(monster_hp_text, (SCREEN_WIDTH - 100, 10))  # Display monster's HP at the top-right
 
         # Display score in yellow text at the top middle of the screen
-        score_text = self.font.render(f"Score: {self.score}     Highscore: {self.high_score}", True, YELLOW)
+        score_text = self.font.render(f"Score: {self.score}", True, YELLOW)
         screen.blit(score_text, (SCREEN_WIDTH // 2 - score_text.get_width() // 2, 10))
 
         # If merchant menu is active, show the menu
@@ -306,13 +282,11 @@ class Game:
         screen.blit(item_text, (SCREEN_WIDTH // 2 - item_text.get_width() // 2, SCREEN_HEIGHT // 3 + 50))
 
     def run(self):
+        input_thread = threading.Thread(target=self.handle_terminal_input, daemon=True)
+        input_thread.start()
         while self.running:
             self.process_input()
             self.handle_events()
-            choice = self.handle_terminal_input()
-            if choice is not None:
-                self.process_input(choice)
-            self.handle_terminal_input()
             self.update()
             self.draw()
             clock.tick(FPS)
