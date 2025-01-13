@@ -18,7 +18,7 @@ class Monster:
         self.height = TILE_SIZE
         self.color = RED
         self.base_hp = 100
-        self.scaling_factor = 10
+        self.scaling_factor = 5
         self.hp = self.base_hp
         self.projectiles = [] 
         self.last_shot_time = time.time()

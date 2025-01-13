@@ -6,6 +6,7 @@ GREEN = (0, 255, 0)
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 class Bullet:
+    damage = 5
     def __init__(self, x, y, direction_x, direction_y):
         self.x = x
         self.y = y
@@ -26,4 +27,7 @@ class Bullet:
     def collides_with(self, monster):
         monster_rect = pygame.Rect(monster.x, monster.y, monster.width, monster.height)
         bullet_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        return bullet_rect.colliderect(monster_rect)
+        if bullet_rect.colliderect(monster_rect):
+            monster.hp -= Bullet.damage
+            return True
+        return False

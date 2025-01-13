@@ -1,8 +1,11 @@
 import pygame
+import threading
+import queue
 from dungeon import Dungeon
 from player import Player
 from monster import Monster
 from merchant import Merchant
+from bullet import Bullet
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -34,7 +37,9 @@ class Game:
         self.proximity_message = ""  # Message to show when near a monster or merchant
         self.font = pygame.font.Font(None, 36)
         self.running = True
-        self.score = 0  # Initialize the score
+        self.score = 0
+        self.gold = 100
+        self.input_queue = queue.Queue()
         self.merchant_menu_active = False  # To track if the merchant menu is active
         self.previous_monster_position = None
         self.previous_player_position = None  # Store the player's position when they interact with the merchant
@@ -50,7 +55,8 @@ class Game:
         self.merchant.spawn(self.dungeon)  # Spawn merchant at a new location
         self.fight_started = False
         self.proximity_message = ""  # Reset message
-        self.score = 0  # Reset score to 0 when the game is reset
+        self.score = 0
+        self.gold = 0
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -65,20 +71,6 @@ class Game:
                     # If the fight message is showing and space is pressed, start the fight
                     elif self.proximity_message == "Press Space to Fight":
                         self.start_boss_fight()
-    def teleport_merchant_back(self):
-        # Teleport the merchant back to their original position
-        self.merchant.x, self.merchant.y = self.merchant_original_position
-    def toggle_merchant_menu(self):
-        # Toggle the merchant menu state
-        if self.merchant_menu_active:
-            self.teleport_player_back()
-            self.teleport_monster_back()
-            self.teleport_merchant_back()  # Teleport merchant back to their original position
-            self.dungeon.restore_walls()  # Restore dungeon walls when leaving the merchant menu
-            self.merchant_menu_active = False  # Deactivate the merchant menu
-        else:
-            self.clear_walls_for_merchant_interaction()
-            self.merchant_menu_active = True  # Activate the merchant menu
 
     def clear_walls_for_merchant_interaction(self):
         # Clear all walls in the dungeon and move the player to a special position near the merchant
@@ -99,6 +91,75 @@ class Game:
         # Teleport the player back to their previous position before interacting with the merchant
         self.player.x, self.player.y = self.previous_player_position
         self.previous_player_position = None  # Clear the stored position
+    
+    def teleport_merchant_back(self):
+        # Teleport the merchant back to their original position
+        self.merchant.x, self.merchant.y = self.merchant_original_position
+
+    def toggle_merchant_menu(self):
+        # Toggle the merchant menu state
+        if self.merchant_menu_active:
+            self.teleport_player_back()
+            self.teleport_monster_back()
+            self.teleport_merchant_back()  # Teleport merchant back to their original position
+            self.dungeon.restore_walls()  # Restore dungeon walls when leaving the merchant menu
+            self.merchant_menu_active = False  # Deactivate the merchant menu
+        else:
+            self.clear_walls_for_merchant_interaction()
+            self.merchant_menu_active = True
+
+    def upgradedmg(self):
+        cost = 20
+        if self.gold >= cost:
+            Bullet.damage += 5
+            self.gold -= cost
+            print("Damage upgraded!")
+        else:
+            print("Not enough gold!")
+
+    def upgradefr(self):
+        cost = 20
+        if self.gold >= cost:
+            if self.player.fire_rate > 0.1:
+                self.player.fire_rate -= 0.05
+                self.gold -= cost
+                print("Fire rate upgraded!")
+            else:
+                print("Fire rate already at maximum!")
+        else:
+            print("Not enough gold!")
+
+    def handle_terminal_input(self):
+        while self.running:
+            if self.merchant_menu_active:
+                print("                        ")
+                print("--------MERCHANT--------")
+                print("                        ")
+                print("------------------------")
+                print("Your current gold is:", self.gold)
+                print("1 - Upgrade Damage")
+                print("2 - Upgrade Firerate")
+                print("3 - Upgrade Max HP")
+                print("4 - Heal 50 HP")
+                print("------------------------")
+                print("                        ")
+                choice = input("Choose an option: ")
+                self.input_queue.put(choice)
+    
+    def process_input(self):
+        if not self.input_queue.empty():
+            choice = self.input_queue.get()
+            if choice == '1':
+                self.upgradedmg()
+                    # elif choice == '2':
+                    #     upgradefr()
+                    # elif choice == '3':
+                    #     upgradehp()
+                    # elif choice == '4':
+                    #     healhp()
+                    # else:
+                    #     print("ERROR")
+                    #     printMenu()
 
     def start_boss_fight(self):
         # Store the player's position before starting the fight
@@ -138,7 +199,8 @@ class Game:
             self.player.bullets.clear()
             self.dungeon.restore_walls()  # Restore dungeon walls
             self.end_boss_fight()  # End the boss fight and return to the starting position
-            self.score += 10  # Increase score when the player defeats a monster
+            self.score += 10
+            self.gold += 10
             self.monster.update_hp(self.score)
             return  # Stop further updates for the monster
 
@@ -214,16 +276,16 @@ class Game:
         pygame.display.flip()
 
     def draw_merchant_menu(self):
-        # Draw a simple merchant menu (for now, just a placeholder)
         menu_text = self.font.render("Welcome to the Merchant! (Press Space to Exit)", True, BLACK)
         screen.blit(menu_text, (SCREEN_WIDTH // 2 - menu_text.get_width() // 2, SCREEN_HEIGHT // 3))
-
-        # You can add items to buy here (just a placeholder for now)
         item_text = self.font.render("Check Terminal", True, BLACK)
         screen.blit(item_text, (SCREEN_WIDTH // 2 - item_text.get_width() // 2, SCREEN_HEIGHT // 3 + 50))
 
     def run(self):
+        input_thread = threading.Thread(target=self.handle_terminal_input, daemon=True)
+        input_thread.start()
         while self.running:
+            self.process_input()
             self.handle_events()
             self.update()
             self.draw()

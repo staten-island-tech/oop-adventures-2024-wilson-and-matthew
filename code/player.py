@@ -21,6 +21,8 @@ class Player:
         self.pistol = None  # Pistol will be assigned later when the fight starts
         self.bullets = []  # List of bullets the player shoots
         self.last_shot_time = time.time()  # Track the last time the player shot a bullet
+        self.fire_rate = 0.5
+        self.bullet_damage = 5
 
     def draw(self):
         pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
@@ -84,6 +86,7 @@ class Player:
                 direction_y /= distance
 
             bullet = Bullet(self.x + self.width // 2, self.y + self.height // 2, direction_x, direction_y)
+            bullet.damage = self.bullet_damage
             self.bullets.append(bullet)
 
             # Update last shot time
@@ -94,5 +97,4 @@ class Player:
         for bullet in self.bullets[:]:
             bullet.update()
             if bullet.collides_with(monster):
-                monster.hp -= 5  # Bullet does 5 damage to the monster
                 self.bullets.remove(bullet)  # Remove the bullet on collision
