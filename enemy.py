@@ -115,4 +115,4 @@ class Player:
         self.hp -= damage
         print(f"{self.hp} HP remaining.")
 
-monster = Enemy(ename="Monster", x=100, y=100, ehp=100, eattack=5, espeed=8, erate=2)  # Example monster with 8 speed for bullets and 2 shots per second
+Monster = Enemy(ename="Monster", x=100, y=100, ehp=100, eattack=5, espeed=8, erate=2)  

@@ -5,4 +5,5 @@ class shopdude:
         self.items = items
     def sell(self, item):
         self.stock.append(item)
+        self.stock.remove(item)
         print(self.inventory)
