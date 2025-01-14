@@ -17,7 +17,7 @@ class Merchant:
         self.color = (0, 0, 255)
 
     def spawn(self, dungeon):
-
+        if random.random() < 0.2:
             while True:
                 x = random.randint(1, dungeon.width - 1) * TILE_SIZE
                 y = random.randint(1, dungeon.height - 1) * TILE_SIZE

@@ -74,7 +74,7 @@ class Player:
 
     def shoot(self):
         current_time = time.time()
-        if self.pistol and current_time - self.last_shot_time >= 0.5:  # Check cooldown
+        if self.pistol and current_time - self.last_shot_time >= self.fire_rate:  # Check cooldown
             mouse_x, mouse_y = pygame.mouse.get_pos()  # Get mouse position
             direction_x = mouse_x - (self.x + self.width // 2)  # Direction to mouse
             direction_y = mouse_y - (self.y + self.height // 2)

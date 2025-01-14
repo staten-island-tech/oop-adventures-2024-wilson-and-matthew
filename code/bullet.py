@@ -28,6 +28,6 @@ class Bullet:
         monster_rect = pygame.Rect(monster.x, monster.y, monster.width, monster.height)
         bullet_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         if bullet_rect.colliderect(monster_rect):
-            monster.hp -= Bullet.damage
+            monster.hp -= self.damage
             return True
         return False
