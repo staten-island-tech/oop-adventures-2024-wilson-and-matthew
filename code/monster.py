@@ -26,6 +26,14 @@ class Monster:
         self.last_direction_change_time = time.time()
         self.direction_change_interval = random.uniform(1, 3)
         self.speed = 5
+        self.shoot_speed = 0.5
+        self.half_hp_reduced = False
+        self.half_hp = self.hp
+
+    def update_shoot_speed(self):
+        if not self.half_hp_reduced and self.hp <= self.half_hp / 2:
+            self.shoot_speed = 0.25
+            self.half_hp_reduced = True
 
     def draw(self):
         pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
@@ -33,9 +41,10 @@ class Monster:
             projectile.draw()
 
     def shoot(self, player):
+        self.update_shoot_speed()
         current_time = time.time()
-        if current_time - self.last_shot_time > 0.5:
-            if random.random() < 0.2:  # 20% chance
+        if current_time - self.last_shot_time > self.shoot_speed:
+            if random.random() < 0.2:
                 self.shoot_octagon()
             else:
                 self.shoot_toward_player(player)
@@ -53,8 +62,7 @@ class Monster:
         self.projectiles.append(projectile)
 
     def shoot_octagon(self):
-        # Fire 8 projectiles in equally spaced directions (45-degree intervals)
-        angles = [i * math.pi / 4 for i in range(8)]  # 0, π/4, π/2, ..., 7π/4
+        angles = [i * math.pi / 4 for i in range(8)]
         for angle in angles:
             direction_x = math.cos(angle)
             direction_y = math.sin(angle)
@@ -122,3 +130,4 @@ class Monster:
 
     def update_hp(self, score):
         self.hp = self.base_hp + score * self.scaling_factor
+        self.half_hp = self.hp

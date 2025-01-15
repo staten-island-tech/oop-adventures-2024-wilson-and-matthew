@@ -1,10 +1,12 @@
 import pygame
 import threading
 import queue
+import random
 from dungeon import Dungeon
 from player import Player
 from monster import Monster
 from merchant import Merchant
+from monster2 import Monster2
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -29,8 +31,7 @@ class Game:
         self.initial_spawn_position = (1 * TILE_SIZE, 1 * TILE_SIZE)
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
         self.player = Player(self.initial_spawn_position[0], self.initial_spawn_position[1])
-        self.monster = Monster(0, 0)
-        self.monster.spawn(self.dungeon)
+        self.monster = self.spawn_random_enemy()
         self.merchant = Merchant()
         self.merchant.spawn(self.dungeon)
         self.fight_started = False
@@ -46,11 +47,18 @@ class Game:
         self.merchant_original_position = (self.merchant.x, self.merchant.y)
         self.high_score = self.load_high_score()
 
+    def spawn_random_enemy(self):
+        if random.random() < 0.5:
+            monster = Monster(0, 0)
+        else:
+            monster = Monster2(0, 0)
+        monster.spawn(self.dungeon)
+        return monster
+    
     def reset_game(self):
         self.dungeon = Dungeon(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
         self.player = Player(self.initial_spawn_position[0], self.initial_spawn_position[1])
-        self.monster = Monster(0, 0)
-        self.monster.spawn(self.dungeon)
+        self.monster = self.spawn_random_enemy()
         self.merchant = Merchant()
         self.merchant.spawn(self.dungeon)
         self.fight_started = False
@@ -194,8 +202,7 @@ class Game:
         self.dungeon.restore_walls()
         self.merchant = Merchant()
         self.merchant.spawn(self.dungeon)
-        self.monster = Monster(0, 0)
-        self.monster.spawn(self.dungeon)
+        self.monster = self.spawn_random_enemy()
         self.player.x, self.player.y = self.starting_position
         self.fight_started = False
         self.proximity_message = ""
@@ -210,7 +217,7 @@ class Game:
             self.dungeon.restore_walls()
             self.end_boss_fight()
             self.score += 10
-            self.gold += 10
+            self.gold += 50
             self.monster.update_hp(self.score)
         if self.score > self.high_score:
             self.high_score = self.score
