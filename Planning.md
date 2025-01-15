@@ -1,0 +1,11 @@
+Object Oriented Adventures *Final-ish* Project
+
+Part 1, The Idea: We unanimously decided that we wanted to create a roguelike dungeon game where the player will spawn in the lobby and can enter a dungeon where they will have to traverse through multiple rooms, collect loot, and avoid many different type of monsters before being able to exit the dungeon and secure their treasure. The roguelike part of this game comes in where when you die, you lose EVERYTHING in your inventory besides your essential “starter” items. 
+
+Part 2, Deciding the Work: We will split the work between two different branches where one of us will create the foundation and mechanics of the game and the other will create the classes, such as players, enemies, and shopkeepers, that will be implemented into the foundation to create a finished and half-decent game.
+
+Part 3, Deciding how to create the game: We were not quite sure how we wanted to implement the fighting aspect of the game and had spent a considerable amount of time thinking about it. Although this was arguably the most interesting and important part of the game, we were still left completely clueless as to how to continue. We originally planned on making the game a more open world and less linear game where the monsters could be seen walking and moving around the map, forcing the player to have to make quick decisions in order to avoid dying and potentially losing all their progress. None the wiser, we began researching how to create the amazing game we had envisioned. However, we soon realized how inconceivable and down right impossible this task would be for two people to do, not to mention two people of our coding level. 
+
+Part 4, The actual game: We just settled with creating a game in which the player would have to traverse through a 2d map and fight monsters to get score and money. In order to fight the enemy, the player would have to interact with them on the dungeon map and then they will be transported to a separate fighting arena where they will battle the monster. 
+
+Part 5, Making the game: After finally figuring out what type of game we were going to make and exactly how we were going to make it, we finally decided it was time to get to work on creating our game.
