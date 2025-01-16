@@ -30,7 +30,7 @@ class Monster:
         self.half_hp_reduced = False
         self.half_hp = self.hp
 
-    def update_shoot_speed(self):
+    def phrase_2(self):
         if not self.half_hp_reduced and self.hp <= self.half_hp / 2:
             self.shoot_speed = 0.25
             self.half_hp_reduced = True
@@ -41,7 +41,7 @@ class Monster:
             projectile.draw()
 
     def shoot(self, player):
-        self.update_shoot_speed()
+        self.phrase_2()
         current_time = time.time()
         if current_time - self.last_shot_time > self.shoot_speed:
             if random.random() < 0.2:

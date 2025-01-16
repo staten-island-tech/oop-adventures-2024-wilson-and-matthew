@@ -3,7 +3,6 @@ import random
 import math
 import time
 from projectile import Projectile
-from monster import Monster
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -150,12 +149,7 @@ class Monster2:
 
     def update_hp(self, score):
         self.hp = self.base_hp + score * self.scaling_factor
-
-    def spawn_monster():
-        if random.random() < 0.5:
-            return Monster(0, 0)
-        else:
-            return Monster2(0, 0)
+        self.half_hp = self.hp
         
 class HomingProjectile(Projectile):
     def __init__(self, x, y, direction_x, direction_y):
