@@ -49,35 +49,38 @@ class Monster3:
                 self.shoot_bones(player)
             self.last_shot_time = current_time
 
-    def shoot_laser(self, player):
-        target_x = player.x + player.width // 2
-        target_y = player.y + player.height // 2
 
-        for _ in range(3):
+    def shoot_laser(self, player):
+        if self.half_hp_reduced:
+            laser_amount = 5
+        else:
+            laser_amount = 3
+        for _ in range(laser_amount):
             spawn_side = random.choice(["top", "bottom", "left", "right"])
             if spawn_side == "top":
                 start_x = random.randint(0, SCREEN_WIDTH)
-                start_y = -50
-                if start_x in range(player.x, player.x + player.width):
-                    start_x = random.randint(0, SCREEN_WIDTH)
+                start_y = -100
+                target_x = random.randint(0, SCREEN_WIDTH)
+                target_y = random.randint(0, SCREEN_HEIGHT)
             elif spawn_side == "bottom":
                 start_x = random.randint(0, SCREEN_WIDTH)
-                start_y = SCREEN_HEIGHT + 50
-                if start_x in range(player.x, player.x + player.width):
-                    start_x = random.randint(0, SCREEN_WIDTH)
+                start_y = SCREEN_HEIGHT + 100
+                target_x = random.randint(0, SCREEN_WIDTH)
+                target_y = random.randint(0, SCREEN_HEIGHT)
             elif spawn_side == "left":
-                start_x = -50
+                start_x = -100
                 start_y = random.randint(0, SCREEN_HEIGHT)
-                if start_y in range(player.y, player.y + player.height):
-                    start_y = random.randint(0, SCREEN_HEIGHT)
+                target_x = random.randint(0, SCREEN_WIDTH)
+                target_y = random.randint(0, SCREEN_HEIGHT)
             else:
-                start_x = SCREEN_WIDTH + 50
+                start_x = SCREEN_WIDTH + 100
                 start_y = random.randint(0, SCREEN_HEIGHT)
-                if start_y in range(player.y, player.y + player.height):
-                    start_y = random.randint(0, SCREEN_HEIGHT)
-
+                target_x = random.randint(0, SCREEN_WIDTH)
+                target_y = random.randint(0, SCREEN_HEIGHT)
             laser = LaserProjectile(start_x, start_y, target_x, target_y)
             self.projectiles.append(laser)
+
+
 
     def shoot_bones(self, player):
         if self.half_hp_reduced:

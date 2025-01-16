@@ -49,12 +49,15 @@ class Game:
         self.high_score = self.load_high_score()
 
     def spawn_random_enemy(self):
-        if random.random() < 0.5:
+        choice = random.randint(1, 3)
+        
+        if choice == 1:
             monster = Monster(0, 0)
-        elif random.random() < 0.5:
+        elif choice == 2:
             monster = Monster2(0, 0)
-        elif random.random() < 0.5:
+        elif choice == 3:
             monster = Monster3(0, 0)
+        
         monster.spawn(self.dungeon)
         return monster
     
