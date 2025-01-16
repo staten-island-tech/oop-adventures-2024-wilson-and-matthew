@@ -7,6 +7,7 @@ from player import Player
 from monster import Monster
 from merchant import Merchant
 from monster2 import Monster2
+from monster3 import Monster3
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -50,8 +51,10 @@ class Game:
     def spawn_random_enemy(self):
         if random.random() < 0.5:
             monster = Monster(0, 0)
-        else:
+        elif random.random() < 0.5:
             monster = Monster2(0, 0)
+        elif random.random() < 0.5:
+            monster = Monster3(0, 0)
         monster.spawn(self.dungeon)
         return monster
     
